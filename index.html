@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>body{margin:0}[hidden]{display:none!important}</style></head><body>
+<title>两千元的一个月</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="一个关于大学生消费观的像素小游戏：用2000元生活费度过一个月。">
+<style>
+/* Layout: 手机竖屏单列 —— 顶部状态条 / 像素舞台 / 对话卡片，一屏玩完；单一夜色主题 */
+:root{
+  --night:#1b1d2e; --night-2:#272b44; --night-3:#363b5c;
+  --paper:#fbf7ea; --ink:#232136; --ink-soft:#615d78;
+  --coin:#f0b43a; --coral:#e8664f; --leaf:#3f9e63; --sky:#8fcbe3; --plum:#9a6fd0;
+  --c-food:#b9b4a6; --c-need:#4f8fd6; --c-growth:#3f9e63; --c-people:#f0b43a; --c-charity:#e88fb4; --c-want:#9a6fd0; --c-impulse:#e8664f;
+  --font-ui:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC",system-ui,sans-serif;
+  --font-num:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Courier New",monospace;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--night);color:var(--paper);font-family:var(--font-ui);font-size:15px;line-height:1.55;-webkit-tap-highlight-color:transparent;overflow-x:hidden}
+#app{height:100%;max-width:480px;margin:0 auto;display:flex;flex-direction:column;gap:10px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px;box-sizing:border-box}
+
+/* 像素边框 */
+.px{box-shadow:0 -3px 0 0 var(--line,var(--ink)),0 3px 0 0 var(--line,var(--ink)),-3px 0 0 0 var(--line,var(--ink)),3px 0 0 0 var(--line,var(--ink))}
+
+.hud{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:end}
+.hud .label{display:block;font-size:11px;letter-spacing:.12em;color:#a9a6c2}
+.hud b{font-family:var(--font-num);font-size:20px;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+#hMoney{color:var(--coin)}
+#hMoney.low{color:var(--coral)}
+.money{text-align:center}
+.mood{min-width:92px}
+.bar{height:10px;background:var(--night-3);margin-top:6px;position:relative}
+.bar i{position:absolute;inset:0 auto 0 0;background:var(--c-charity);transition:width .4s}
+.track{height:6px;background:var(--night-3);position:relative}
+.track i{position:absolute;inset:0 auto 0 0;background:var(--sky)}
+.track span{position:absolute;top:-2px;width:4px;height:10px;background:var(--night-3);margin-left:-2px}
+.track span.done{background:var(--coin)}
+
+.stage{position:relative;line-height:0}
+#cv{width:100%;max-width:100%;aspect-ratio:16/9;image-rendering:pixelated;image-rendering:crisp-edges;background:var(--sky);display:block}
+#floats{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.float{position:absolute;left:22%;top:18%;font-family:var(--font-num);font-weight:700;font-size:15px;line-height:1;color:var(--paper);
+  text-shadow:2px 0 var(--ink),-2px 0 var(--ink),0 2px var(--ink),0 -2px var(--ink);animation:rise 1.3s ease-out forwards;white-space:nowrap}
+.float.minus{color:#ffd9cf}.float.plus{color:#b8f0c8}
+@keyframes rise{from{transform:translateY(0);opacity:1}to{transform:translateY(-34px);opacity:0}}
+
+.panel{flex:1;min-height:0;overflow-y:auto;background:var(--paper);color:var(--ink);padding:16px 16px 14px;margin:3px}
+.panel .meta{font-size:12px;letter-spacing:.1em;color:var(--ink-soft);display:flex;justify-content:space-between;gap:8px}
+.panel h2{font-size:19px;margin:4px 0 6px;text-wrap:balance;line-height:1.35}
+.panel p{margin:0 0 10px}
+.opts{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+.opt{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  background:#fff;color:var(--ink);padding:11px 12px;font-size:15px;line-height:1.35;
+  box-shadow:0 -2px 0 0 var(--ink),0 2px 0 0 var(--ink),-2px 0 0 0 var(--ink),2px 0 0 0 var(--ink),0 5px 0 0 var(--ink-soft)}
+.opt:active{transform:translateY(3px);box-shadow:0 -2px 0 0 var(--ink),0 2px 0 0 var(--ink),-2px 0 0 0 var(--ink),2px 0 0 0 var(--ink)}
+.opt:focus-visible{outline:3px solid var(--coin);outline-offset:4px}
+.opt .amt{font-family:var(--font-num);font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+.opt .amt.out{color:var(--coral)}.opt .amt.in{color:var(--leaf)}.opt .amt.zero{color:var(--ink-soft)}
+.opt small{display:block;font-size:12px;color:var(--coral)}
+.walklog{display:flex;flex-direction:column;gap:6px}
+.walklog .now{font-size:17px;font-weight:700}
+.walklog .tip{color:var(--ink-soft);font-size:14px}
+.fb{border-left:4px solid var(--coin);padding:6px 10px;background:#f4eedb;margin:8px 0 12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chip{font-size:12px;padding:2px 8px;background:var(--ink);color:var(--paper);font-family:var(--font-num)}
+.go{all:unset;box-sizing:border-box;cursor:pointer;display:block;width:100%;text-align:center;background:var(--coin);color:var(--ink);font-weight:700;font-size:16px;padding:12px;
+  box-shadow:0 -2px 0 0 var(--ink),0 2px 0 0 var(--ink),-2px 0 0 0 var(--ink),2px 0 0 0 var(--ink),0 5px 0 0 #a8771c}
+.go:active{transform:translateY(3px)}
+.go:focus-visible{outline:3px solid var(--paper);outline-offset:4px}
+.go.ghost{background:var(--paper)}
+
+/* 开始与结局 */
+.overlay{position:fixed;inset:0;background:var(--night);overflow-y:auto;z-index:5;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.sheet{max-width:480px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 40px;display:flex;flex-direction:column;gap:18px}
+.logo{font-size:38px;line-height:1.15;font-weight:900;letter-spacing:.06em;color:var(--coin);text-shadow:3px 3px 0 var(--coral),6px 6px 0 var(--ink);text-wrap:balance;margin:0}
+.kicker{font-size:12px;letter-spacing:.3em;color:var(--sky)}
+.card{background:var(--paper);color:var(--ink);padding:16px;margin:3px}
+.card h3{margin:0 0 8px;font-size:16px}
+.card ul{margin:0;padding-left:20px}
+.card li+li{margin-top:4px}
+#startPortrait{display:block;width:96px;height:128px;image-rendering:pixelated;align-self:center}
+
+.verdict{display:inline-block;font-size:13px;padding:3px 10px;background:var(--coral);color:#fff;font-weight:700;letter-spacing:.08em}
+.endtitle{font-size:30px;margin:6px 0 2px;color:var(--coin);text-wrap:balance;line-height:1.25}
+.stars{font-size:20px;letter-spacing:4px;color:var(--coin)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat{background:var(--night-2);padding:10px;min-width:0}
+.stat span{display:block;font-size:11px;color:#a9a6c2;letter-spacing:.1em}
+.stat b{font-family:var(--font-num);font-size:18px;font-variant-numeric:tabular-nums}
+.stack{display:flex;height:18px;background:var(--night-3);overflow:hidden}
+.stack i{display:block;height:100%}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;margin-top:10px;font-size:13px}
+.legend div{display:flex;align-items:center;gap:6px;min-width:0}
+.legend em{width:10px;height:10px;flex:none}
+.legend b{margin-left:auto;font-family:var(--font-num);font-weight:400;font-variant-numeric:tabular-nums}
+.review{display:flex;flex-direction:column;gap:8px;font-size:14px}
+.review div{display:grid;grid-template-columns:48px 1fr auto;gap:8px;align-items:start}
+.review .d{font-family:var(--font-num);color:var(--ink-soft)}
+.review .a{font-family:var(--font-num);white-space:nowrap}
+.tag{display:inline-block;font-size:11px;padding:0 5px;color:#fff;margin-left:4px;vertical-align:1px}
+.quote{font-size:15px;border-left:4px solid var(--coral);padding:4px 12px;margin:10px 0 0}
+.debtline{color:var(--coral);font-weight:700}
+.toggles{display:flex;justify-content:flex-end;gap:8px;margin-top:-4px}
+.tg{all:unset;cursor:pointer;font-size:12px;padding:3px 10px;background:var(--night-3);color:var(--paper);letter-spacing:.06em}
+.tg[aria-pressed="false"]{color:#8d8aa6;text-decoration:line-through}
+.tg:focus-visible{outline:2px solid var(--coin);outline-offset:2px}
+.res{display:flex;gap:12px;align-items:center;margin:6px 0 4px}
+.res>div{min-width:0}
+.res h2{margin:2px 0 0}
+.face{width:66px;height:54px;flex:none;image-rendering:pixelated;background:#e9f3f7;box-shadow:0 0 0 2px var(--ink)}
+.feel{font-size:12px;color:var(--ink-soft);letter-spacing:.06em}
+#gateSign{position:absolute;top:24.3%;height:12.5%;width:51.6%;display:flex;align-items:center;justify-content:center;
+  color:#fff3c4;font-weight:900;letter-spacing:.12em;font-size:clamp(11px,3.6vw,17px);line-height:1;white-space:nowrap;transition:opacity .6s;
+  text-shadow:1px 1px 0 #7a2a22}
+#gateSign.fade{opacity:0}
+.pick{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.who{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 8px;background:#fff;color:var(--ink);font-weight:700;
+  box-shadow:0 0 0 2px var(--ink)}
+.who canvas{width:96px;height:150px;image-rendering:pixelated}
+.who[aria-pressed="true"]{background:#fff1c9;box-shadow:0 0 0 2px var(--ink),0 0 0 6px var(--coin)}
+.who:focus-visible{outline:3px solid var(--sky);outline-offset:6px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-weight:700;font-size:14px}
+.field input{font:inherit;font-size:16px;padding:10px 12px;border:0;background:#fff;color:var(--ink);box-shadow:0 0 0 2px var(--ink);border-radius:0;width:100%;box-sizing:border-box;color-scheme:light}
+.field input:focus{outline:3px solid var(--coin);outline-offset:2px}
+.endhead{display:flex;gap:14px;align-items:center}
+.endhead canvas{width:88px;height:72px;flex:none;image-rendering:pixelated;background:#e9f3f7;box-shadow:0 0 0 3px var(--paper)}
+.endhead>div{min-width:0}
+@media (prefers-reduced-motion:reduce){.float{animation-duration:.01s}.bar i{transition:none}}
+</style>
+
+<div id="app">
+  <div class="hud">
+    <div><span class="label">日期</span><b id="hDate">11月1日</b></div>
+    <div class="money"><span class="label">余额</span><b id="hMoney">¥2000</b></div>
+    <div class="mood"><span class="label">心情</span><div class="bar"><i id="hMood" style="width:60%"></i></div></div>
+  </div>
+  <div class="toggles"><button class="tg" type="button" id="tgMusic" aria-pressed="true">音乐 开</button><button class="tg" type="button" id="tgFx" aria-pressed="true">音效 开</button></div>
+  <div class="track" id="track"><i id="hProg" style="width:0"></i></div>
+  <div class="stage"><canvas id="cv" width="256" height="144" aria-label="像素小人在校园里从左往右行走"></canvas><div id="floats"></div><div id="gateSign">广东金融学院</div></div>
+  <section class="panel px" id="panel" aria-live="polite"></section>
+</div>
+
+<div class="overlay" id="start">
+  <div class="sheet">
+    <div class="kicker">思政课 · 互动小游戏</div>
+    <h1 class="logo">两千元的<br>一个月</h1>
+    <div class="card px">
+      <h3>选择你的角色</h3>
+      <div class="pick">
+        <button class="who" type="button" id="pickGirl" aria-pressed="true"><canvas id="pvGirl" width="16" height="25"></canvas>女生</button>
+        <button class="who" type="button" id="pickBoy" aria-pressed="false"><canvas id="pvBoy" width="16" height="25"></canvas>男生</button>
+      </div>
+      <div class="field" style="margin-top:14px">
+        <label for="nick">你的昵称</label>
+        <input id="nick" type="text" maxlength="8" placeholder="最多 8 个字，不填就叫小林" autocomplete="off">
+      </div>
+    </div>
+    <div class="card px">
+      <h3>你是一名大一新生</h3>
+      <p style="margin:0">这个月爸妈给了你 <b>2000 元</b> 生活费。食堂三餐每天要花 <b>32 元</b>，会自动扣除。一路上你会遇到各种花钱的机会：促销、聚餐、分期、直播间……</p>
+    </div>
+    <div class="card px">
+      <h3>怎么玩</h3>
+      <ul>
+        <li>你的角色会自己往前走，每走过一盏路灯就是一天。</li>
+        <li>遇到事件时，选择花不花、花多少。</li>
+        <li>一个月结束后，根据你的选择揭晓你的<b>消费观结局</b>。</li>
+      </ul>
+    </div>
+    <button class="go" id="btnStart" type="button">开始这个月 →</button>
+  </div>
+</div>
+
+<div class="overlay" id="end" hidden>
+  <div class="sheet" id="endSheet"></div>
+</div>
+
+<script>
+(function(){
+const START=2000, DAILY=32, DAYLEN=64, SPEED=58, DAYS=30, CHARX=50;
+const W=256,H=144,GROUND=114;
+
+/* ---------- 事件 ---------- */
+// tag: need 必需 / growth 成长 / people 人情 / charity 公益 / want 享受 / impulse 冲动 / save 不花 / skip 省掉必需 / work 收入 / loan 借贷 / install 分期
+const POOL=[
+ {day:2,icon:'gym',wall:'#5d7fb8',awn:'#e8664f',place:'校门口健身房',title:'健身房开业大酬宾',
+  text:'学校门口新开了一家健身房。销售拦住你：“同学，年卡今天只要 699，原价 1999！明天就恢复原价了。”室友已经心动了。',
+  opts:[
+   {t:'办年卡，今天最划算',cost:699,tag:'impulse',mood:5,fb:'“限时优惠”“明天恢复原价”是最常见的营销话术。年卡买了能不能坚持去，才是真正的成本。'},
+   {t:'先办一个月卡试试',cost:99,tag:'growth',mood:3,fb:'先试再决定，是对自己的钱包负责，也是对健康的投资。'},
+   {t:'不办，晚上去操场跑步',cost:0,tag:'save',mood:2,fb:'锻炼不一定要花钱，学校操场就是免费的健身房。'}]},
+ {day:5,icon:'tea',wall:'#c98a5c',awn:'#f6d36b',place:'奶茶店',title:'联名奶茶刷屏了',
+  text:'热门动漫和奶茶店出了联名款，买两杯送限定徽章。朋友圈已经刷屏，同学问你：“你还没喝？”',
+  opts:[
+   {t:'买两杯，把徽章集齐',cost:66,tag:'impulse',mood:5,fb:'为周边买单、为“别人都有”买单，这就是从众消费和攀比心理。'},
+   {t:'买一杯尝尝就好',cost:18,tag:'want',mood:4,fb:'偶尔犒劳一下自己没问题，控制在预算里就好。'},
+   {t:'不跟风',cost:0,tag:'save',mood:0,fb:'不被朋友圈带节奏，是一种难得的定力。'}]},
+ {day:8,icon:'book',wall:'#6c8a5a',awn:'#fbf7ea',place:'教务处',title:'考证报名和专业教材',
+  text:'英语四级报名开始了，专业课老师也要求买教材。新教材加报名费一共 230 元；学长愿意把二手教材便宜转给你，这样一共 140 元。',
+  opts:[
+   {t:'买新教材 + 报名',cost:230,tag:'growth',mood:3,fb:'为学习花钱是投资自己，这笔钱值得。'},
+   {t:'用学长的二手书 + 报名',cost:140,tag:'growth',mood:4,fb:'既投资了自己，又省了钱，还让书本循环利用，一举三得。'},
+   {t:'都不买，下学期再说',cost:0,tag:'skip',mood:-5,fb:'学习上的必要支出不该省。耽误的时间和机会，比这点钱贵得多。'}]},
+ {day:11,icon:'bag',wall:'#d4577a',awn:'#fbf7ea',place:'快递站',title:'双十一零点',
+  text:'零点到了，购物车里躺着衣服、零食、小摆件，凑满减一共 580 元。天冷了，你确实缺一件厚外套和一瓶洗发水。',
+  opts:[
+   {t:'清空购物车，凑满减',cost:580,tag:'impulse',mood:7,fb:'为了凑满减而多买的东西，往往并不是你真正需要的。'},
+   {t:'只买外套和洗发水',cost:160,tag:'need',mood:3,fb:'分清“需要”和“想要”，这就是理性消费的第一步。'},
+   {t:'一件都不买',cost:0,tag:'skip',mood:-4,fb:'节约是好习惯，但天冷了没有外套会冻着，必要的东西还是该买。'}]},
+ {day:13,icon:'phone',wall:'#4a4f6e',awn:'#8fcbe3',place:'手机店',title:'新款手机发布',
+  text:'新款手机发布了。你的旧手机还能用，就是电池不太行。店员说：“12 期免息，每月只要 549，凭学生证就能办！”',
+  opts:[
+   {t:'分期买新手机',cost:549,tag:'install',mood:8,debt:549*11,fb:'“每月只要”把大额消费拆小了，但接下来 11 个月都要还，总价 6588 元，远超每月生活费。'},
+   {t:'花 129 元换块新电池',cost:129,tag:'need',mood:2,fb:'解决真正的问题，而不是追逐新品。'},
+   {t:'继续用，出门带充电宝',cost:0,tag:'save',mood:0,fb:'能用就继续用，物尽其用也是一种节约。'}]},
+ {day:15,icon:'cake',wall:'#e3a65b',awn:'#e8664f',place:'校外餐厅',title:'室友过生日',
+  text:'室友过生日，大家约在校外餐厅聚餐，人均 80 元。有人提议再合买个礼物，每人再加 70 元。',
+  opts:[
+   {t:'去聚餐，再合送礼物',cost:150,tag:'people',mood:8,fb:'珍惜友情很好，也要记得量力而行。'},
+   {t:'去聚餐，送张手写贺卡',cost:82,tag:'people',mood:7,fb:'心意不在于价格，真诚的祝福同样珍贵。'},
+   {t:'找个借口不去了',cost:0,tag:'save',mood:-8,noPeople:true,fb:'正常的人情往来也是生活的一部分，一味回避会让自己变得孤单。'}]},
+ {day:17,icon:'live',wall:'#7a5ab8',awn:'#f29ac0',place:'直播间',title:'直播间限时秒杀',
+  text:'睡前刷到美妆直播：“最后 100 单！原价 899 的护肤套装今晚只要 299！”倒计时还剩 30 秒。你的洗面奶刚好用完了。',
+  opts:[
+   {t:'马上下单抢套装',cost:299,tag:'impulse',mood:5,fb:'倒计时和“最后 X 单”是在制造焦虑，让你来不及思考就下单。'},
+   {t:'关掉直播，只买洗面奶',cost:45,tag:'need',mood:1,fb:'只买真正用完的东西，不被直播间的气氛带走。'},
+   {t:'关掉手机去睡觉',cost:0,tag:'save',mood:0,fb:'冷静一晚上，很多“必须现在买”的东西其实可以不买。'}]},
+ {day:19,icon:'coin',wall:'#8a6a4a',awn:'#3f9e63',place:'图书馆',title:'勤工助学岗位',
+  text:'图书馆在招勤工助学岗位，每周两个下午帮忙整理书架，这个月能拿到 240 元。',
+  opts:[
+   {t:'报名，自己挣一点',cost:-240,tag:'work',mood:-2,fb:'通过劳动获得收入，更能体会每一分钱都来之不易。'},
+   {t:'不报，时间留给学习和休息',cost:0,tag:'save',mood:1,fb:'这也是合理的选择，时间同样是宝贵的资源。'}]},
+ {day:20,icon:'flyer',wall:'#55566a',awn:'#e8664f',place:'宿舍楼下',title:'“学生专享贷款”',cond:s=>s.money<380,
+  textFn:s=>`宿舍楼下有人在发传单：“大学生专享，凭学生证当天到账，最高 5000 元！”你看了看余额，只剩 ¥${s.money}，离月底还有 ${DAYS-s.day} 天。`,
+  opts:[
+   {t:'借 1500 元应急',cost:-1500,tag:'loan',mood:4,debt:1950,fb:'这类“校园贷”利息高、陷阱多：借 1500，下个月要还 1950。拆东墙补西墙，很容易越滚越多。'},
+   {t:'不借，联系辅导员问问资助',cost:0,tag:'save',mood:2,fb:'遇到困难要走正规渠道：父母、辅导员、学校的困难补助和助学金。'},
+   {t:'不借，后面几天省着点花',cost:0,tag:'save',mood:-2,fb:'量入为出，这才是解决问题的根本办法。'}]},
+ {day:22,icon:'heart',wall:'#c56b8a',awn:'#fbf7ea',place:'学院广场',title:'为山区小学捐书',
+  text:'学院志愿者正在为山区小学募集图书，每 20 元可以送出一本书。',
+  opts:[
+   {t:'捐 60 元（三本书）',cost:60,tag:'charity',mood:6,fb:'把钱花在帮助别人身上，也是一种有温度的消费。'},
+   {t:'捐 20 元（一本书）',cost:20,tag:'charity',mood:5,fb:'善意不分多少，量力而行就好。'},
+   {t:'这次先不捐',cost:0,tag:'save',mood:0,fb:'量力而行。也可以用其他方式参与公益，比如报名做志愿者。'}]},
+ {day:24,icon:'cross',wall:'#e9eef2',awn:'#e8664f',place:'校医院',title:'降温感冒了',
+  text:'突然降温，你感冒发烧了，头昏昏沉沉。去校医院看病拿药大概要 45 元。',
+  opts:[
+   {t:'去校医院看病',cost:45,tag:'need',mood:3,fb:'身体是一切的基础，这种钱一定要花。'},
+   {t:'硬扛着，多喝热水',cost:0,tag:'skip',mood:-12,fb:'省下 45 元，可能换来更长的病程和耽误的课。过度节俭也是一种不理性。'}]},
+ {day:26,icon:'pad',wall:'#3e5a8a',awn:'#9a6fd0',place:'网吧门口',title:'游戏出了限定皮肤',
+  text:'常玩的游戏出了限定皮肤，只卖三天。抽一次“十连”要 328 元；也可以只买 30 元的月卡。',
+  opts:[
+   {t:'十连抽，冲限定',cost:328,tag:'impulse',mood:6,fb:'“限定”加抽卡机制，会让人越抽越停不下来，要格外警惕。'},
+   {t:'只买 30 元月卡',cost:30,tag:'want',mood:3,fb:'娱乐可以有，但要给它设个上限。'},
+   {t:'不充钱，开心玩就好',cost:0,tag:'save',mood:1,fb:'快乐不一定要靠花钱买来。'}]},
+ {day:28,icon:'train',wall:'#5b8f8a',awn:'#fbf7ea',place:'车站',title:'周末出去玩',
+  text:'同学约着周末去邻市旅游，高铁加民宿人均 420 元。也有人提议去市博物馆，门票免费，路费加午饭 35 元。',
+  opts:[
+   {t:'坐高铁去邻市',cost:420,tag:'want',mood:10,fb:'旅行能开阔眼界，但最好提前列进预算，而不是月底临时决定。'},
+   {t:'去市博物馆',cost:35,tag:'growth',mood:7,fb:'低成本也能有高质量的休闲，还能长知识。'},
+   {t:'宿舍躺平',cost:0,tag:'save',mood:-2,fb:'休息也不错，不过偶尔出去走走对身心都好。'}]},
+ {day:30,icon:'gift',wall:'#b8584a',awn:'#f6d36b',place:'邮局',title:'今天是妈妈的生日',
+  text:'今天是妈妈的生日。你突然想到，这个月的 2000 元生活费，是爸妈辛辛苦苦挣来的。',
+  opts:[
+   {t:'买条围巾寄回家',cost:120,tag:'people',mood:8,fb:'孝心很珍贵，用自己省下的钱表达心意更有意义。'},
+   {t:'打视频电话，写张手写卡片',cost:5,tag:'people',mood:8,fb:'陪伴和心意，往往比礼物更让父母开心。'},
+   {t:'忙着忙着忘了',cost:0,tag:'save',mood:-6,noPeople:true,fb:'表达爱不一定要花钱，但别忘了说一声生日快乐。'}]}
+];
+/* 每局随机抽取事件、随机安排日期：双十一固定在 11 日，校园贷只在下半月出现 */
+const CORE=['考证报名和专业教材','双十一零点','新款手机发布','降温感冒了'];
+const SLOTS=[2,4,6,8,13,15,17,19,21,23,25,27,29];
+let EVENTS=[];
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function buildEvents(){
+  const d11=POOL.find(e=>e.title==='双十一零点'),loan=POOL.find(e=>e.cond);
+  const core=POOL.filter(e=>CORE.includes(e.title)&&e!==d11);
+  const extra=shuffle(POOL.filter(e=>!CORE.includes(e.title)&&e!==loan)).slice(0,6);
+  const list=shuffle(core.concat(extra));
+  const slots=shuffle(SLOTS).slice(0,list.length+1).sort((a,b)=>a-b);
+  // 校园贷放在 17 日以后的某个空位
+  const late=slots.filter(d=>d>=17);const loanDay=late[Math.floor(Math.random()*late.length)];
+  const rest=slots.filter(d=>d!==loanDay);
+  EVENTS=list.map((e,i)=>Object.assign({},e,{day:rest[i]})).concat([Object.assign({},d11,{day:11}),Object.assign({},loan,{day:loanDay})]);
+  EVENTS.sort((a,b)=>a.day-b.day);
+  EVENTS.forEach(e=>e.x=(e.day-1)*DAYLEN+DAYLEN*0.5);
+}
+
+const TAGS={need:['必需','#4f8fd6'],growth:['成长','#3f9e63'],people:['人情','#d29a22'],charity:['公益','#d6709a'],want:['享受','#9a6fd0'],
+ impulse:['冲动','#e8664f'],install:['分期','#c0392b'],loan:['借贷','#c0392b'],save:['不花','#7d7a92'],skip:['该花没花','#7d7a92'],work:['收入','#3f9e63']};
+
+/* ---------- 像素图 ---------- */
+/* 人物：16×25 像素，头部 0-11 行，身体 12-20 行，腿 21-24 行（4 帧走路） */
+const BODY=[
+"....tttcctttb...",
+"...ttttcctttbb..",
+"..Tttttttttttbb.",
+"..TttttttttTtbb.",
+"..TttttttttTbb..",
+"..sTTTTTTTTsb..."];
+const CHAR={
+ girl:{
+  head:[
+  ".....hhhhhh.....",
+  "...hhHHhhhhhh...",
+  "..hhHhhhhhhhhh..",
+  ".hhhhhhhhhhhhhh.",
+  ".hhhshhhhhhshhh.",
+  "hhhssssssssssshh",
+  "hhhssssssssssshh",
+  "hhhssssssssssshh",
+  "hhhssssssssssshh",
+  "hhhSssssssssShhh",
+  "hhh..SssssS..hhh",
+  "hhh....ss....hhh"],
+  lower:[
+  "....pppppppp....",
+  "...pppppppppp...",
+  "...PPPPPPPPPP..."],
+  legs:[
+  [".....ll..ll.....",".....ll..ll.....",".....ww..ww.....","....ooo..ooo...."],
+  ["....ll....ll....","...ll......ll...","...ww......ww...","..ooo......ooo.."],
+  [".....ll..ll.....",".....ll..ll.....",".....ww..ww.....","....ooo..ooo...."],
+  ["......llll......","......llll......","......wwww......",".....ooooo......"]],
+  col:{h:'#3a2626',H:'#6b4540',s:'#f7d2b4',S:'#e5b08f',t:'#ef8a74',T:'#d9664f',c:'#fbf7ea',b:'#4a6fc0',p:'#3c4a78',P:'#2c3760',l:'#f7d2b4',w:'#fbf7ea',o:'#5a3328'}},
+ boy:{
+  head:[
+  "................",
+  "....hhhhhhhh....",
+  "...hhHHhhhhhh...",
+  "..hhHhhhhhhhhhh.",
+  "..hhhhhhhhhhhhh.",
+  "..hhssshhhssshh.",
+  "..hsssssssssssh.",
+  "..hsssssssssssh.",
+  "..ssssssssssss..",
+  "..SssssssssssS..",
+  "...SSssssssSS...",
+  "......ssss......"],
+  lower:[
+  "....pppppppp....",
+  "....pppppppp....",
+  "....ppp..ppp...."],
+  legs:[
+  ["....ppp..ppp....",".....pp..pp.....",".....pp..pp.....","....ooo..ooo...."],
+  ["...ppp....ppp...","...pp......pp...","..pp........pp..","..ooo......ooo.."],
+  ["....ppp..ppp....",".....pp..pp.....",".....pp..pp.....","....ooo..ooo...."],
+  [".....pppppp.....","......pppp......","......pppp......",".....ooooo......"]],
+  col:{h:'#24222e',H:'#4a4860',s:'#f2c8a6',S:'#dca582',t:'#3f8f7a',T:'#2f6f5e',c:'#fbf7ea',b:'#e3a03a',p:'#3a4160',P:'#2a3048',o:'#222230'}}
+};
+/* 表情：在脸上叠加像素。坐标 [列,行,颜色键] */
+const FC={e:'#23202c',w:'#ffffff',m:'#a2483f',r:'#e0464a',k:'#f4a0a0',q:'#7cc7f0'};
+const FACES={
+ neutral:[[5,6,'e'],[5,7,'e'],[10,6,'e'],[10,7,'e'],[7,9,'m'],[8,9,'m']],
+ happy:[[4,7,'e'],[5,6,'e'],[6,7,'e'],[9,7,'e'],[10,6,'e'],[11,7,'e'],[3,8,'k'],[12,8,'k'],[6,9,'m'],[7,10,'m'],[8,10,'m'],[9,9,'m']],
+ joy:[[4,7,'e'],[5,6,'e'],[6,7,'e'],[9,7,'e'],[10,6,'e'],[11,7,'e'],[3,8,'k'],[4,8,'k'],[11,8,'k'],[12,8,'k'],[6,9,'e'],[7,9,'r'],[8,9,'r'],[9,9,'e'],[7,10,'r'],[8,10,'r']],
+ proud:[[4,6,'e'],[5,6,'e'],[6,6,'e'],[9,6,'e'],[10,6,'e'],[11,6,'e'],[5,7,'e'],[10,7,'e'],[3,8,'k'],[12,8,'k'],[6,9,'m'],[7,9,'m'],[8,9,'m'],[9,9,'m']],
+ sad:[[4,5,'e'],[11,5,'e'],[5,7,'e'],[10,7,'e'],[7,9,'m'],[8,9,'m'],[6,10,'m'],[9,10,'m']],
+ cry:[[4,6,'e'],[6,6,'e'],[5,7,'e'],[9,6,'e'],[11,6,'e'],[10,7,'e'],[5,8,'q'],[5,9,'q'],[10,8,'q'],[10,9,'q'],[7,9,'m'],[8,9,'m'],[6,10,'m'],[9,10,'m']],
+ shock:[[4,6,'w'],[5,6,'w'],[4,7,'w'],[5,7,'e'],[10,6,'w'],[11,6,'w'],[10,7,'e'],[11,7,'w'],[7,9,'e'],[8,9,'e'],[7,10,'e'],[8,10,'e']]
+};
+const FACE_NAME={neutral:'平静',happy:'开心',joy:'超开心',proud:'满足',sad:'失落',cry:'难过',shock:'慌了'};
+/* 侧面（朝右走）造型 */
+const SIDE_BODY=[
+"....bbttttt.....",
+"...bbbtttttt....",
+"...bbbttTttt....",
+"...bbbttTttt....",
+"....bbttsttt....",
+"......tttt......"];
+const SIDE_LEGS_G=[
+["......ll........","......ll........","......ww........","......oooo......"],
+[".....l...l......","....l.....l.....","....w.....w.....","...oo.....ooo..."],
+["......ll........","......ll........","......ww........","......oooo......"],
+[".....l..l.......",".....l...l......",".....w...w......","....oo...ooo...."]];
+const SIDE={
+ girl:{head:[
+  ".....hhhhhh.....",
+  "...hhHHhhhhh....",
+  "..hhHhhhhhhhh...",
+  ".hhhhhhhhhhhhh..",
+  "hhhhhhhhhshhhh..",
+  "hhhhhhhsssssss..",
+  "hh.hhhssssssss..",
+  "hh.hhhsssssssss.",
+  "hh..hhssssssss..",
+  ".h..hhSsssssss..",
+  ".....hSSssssS...",
+  "........sss....."],
+  lower:[".....pppppp.....","....pppppppp....","....PPPPPPPP...."],
+  legs:SIDE_LEGS_G},
+ boy:{head:[
+  "................",
+  "....hhhhhhh.....",
+  "...hhHHhhhhhh...",
+  "..hhHhhhhhhhhh..",
+  "..hhhhhhhhhhhh..",
+  "..hhhhhhhsssss..",
+  "..hhhhhsssssss..",
+  "..hhhhSssssssss.",
+  "...hhhssssssss..",
+  "....hhSsssssss..",
+  "......SSssssS...",
+  "........sss....."],
+  lower:[".....pppppp.....",".....pppppp.....",".....pppppp....."],
+  legs:SIDE_LEGS_G.map(f=>f.map(r=>r.replace(/[lw]/g,'p')))}
+};
+const SIDE_FACES={
+ neutral:[[11,6,'e'],[11,7,'e'],[12,9,'m']],
+ happy:[[10,7,'e'],[11,6,'e'],[12,7,'e'],[12,8,'k'],[12,9,'m']],
+ sad:[[11,7,'e'],[10,5,'e'],[11,10,'m'],[12,10,'m']],
+ shock:[[11,6,'w'],[11,7,'e'],[12,9,'e'],[12,10,'e']]
+};
+function drawChar(ctx,g,x,y,frame,s,face,side){
+  if(side){const C=SIDE[g],col=CHAR[g].col;
+    drawMap(ctx,C.head,col,x,y,s);drawMap(ctx,SIDE_BODY,col,x,y+12*s,s);drawMap(ctx,C.lower,col,x,y+18*s,s);drawMap(ctx,C.legs[frame],col,x,y+21*s,s);
+    const f=SIDE_FACES[face]||SIDE_FACES[(face==='cry')?'sad':'happy'];
+    for(const [c,r,k] of f){ctx.fillStyle=FC[k];ctx.fillRect(Math.round(x+c*s),Math.round(y+r*s),s,s)}
+    if(face==='shock'){ctx.fillStyle=FC.q;ctx.fillRect(x+14*s,y+3*s,s,s);ctx.fillRect(x+13*s,y+4*s,2*s,2*s)}
+    return}
+  const C=CHAR[g],col=C.col;
+  drawMap(ctx,C.head,col,x,y,s);
+  drawMap(ctx,BODY,col,x,y+12*s,s);
+  drawMap(ctx,C.lower,col,x,y+18*s,s);
+  drawMap(ctx,C.legs[frame],col,x,y+21*s,s);
+  for(const [c,r,k] of FACES[face||'neutral']){ctx.fillStyle=FC[k];ctx.fillRect(Math.round(x+c*s),Math.round(y+r*s),s,s)}
+  if(face==='shock'){ctx.fillStyle=FC.q;ctx.fillRect(x+14*s,y+3*s,s,s);ctx.fillRect(x+13*s,y+4*s,2*s,2*s)}
+  if(face==='proud'||face==='joy'){ctx.fillStyle='#f0b43a';const sx=x+15*s,sy=y;ctx.fillRect(sx,sy+s,s*3,s);ctx.fillRect(sx+s,sy,s,s*3)}
+}
+function drawPortrait(canvas,g,face){const c=canvas.getContext('2d');c.imageSmoothingEnabled=false;c.clearRect(0,0,canvas.width,canvas.height);
+  const C=CHAR[g];drawMap(c,C.head,C.col,2,2,1);drawMap(c,BODY.slice(0,3),C.col,2,14,1);
+  for(const [cc,r,k] of FACES[face]){c.fillStyle=FC[k];c.fillRect(2+cc,2+r,1,1)}
+  if(face==='shock'){c.fillStyle=FC.q;c.fillRect(16,5,1,1);c.fillRect(15,6,2,2)}
+  if(face==='proud'||face==='joy'){c.fillStyle='#f0b43a';c.fillRect(16,2,3,1);c.fillRect(17,1,1,3)}}
+function faceFor(o){
+  if(o.tag==='install'||o.tag==='loan')return 'shock';
+  if(o.mood<=-6)return 'cry';
+  if(o.mood<0)return 'sad';
+  if((o.tag==='growth'||o.tag==='charity'||o.tag==='people'||o.tag==='need'||o.tag==='work')&&o.mood>=0)return o.mood>=6?'joy':'proud';
+  if(o.mood>=6)return 'joy';
+  if(o.mood>=3)return 'happy';
+  return 'neutral';
+}
+function esc(t){return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+const ICONS={
+ gym:["........","x......x","xx....xx","xxyyyyxx","xx....xx","x......x","........","........"],
+ tea:["....z...","...z....",".xxxxxx.",".xyyyyx.",".xyyyyx.",".xyzyzx.","..xyyx..","..xxxx.."],
+ book:["........",".xxxxxx.",".xyyyyx.",".xyxxyx.",".xyyyyx.",".xyxxyx.",".xyyyyx.",".xxxxxx."],
+ bag:["..yyyy..","..y..y..","xxxxxxxx","xxxxxxxx","xxxzzxxx","xxxzzxxx","xxxxxxxx","xxxxxxxx"],
+ phone:["..xxxx..","..xyyx..","..xyyx..","..xyyx..","..xyyx..","..xyyx..","..xzzx..","..xxxx.."],
+ cake:["...z.z..","...x.x..",".yyyyyy.",".xxxxxx.",".yyyyyy.",".xxxxxx.",".xxxxxx.","........"],
+ live:["xxxxxxxx","xyyyyyyx","xyyzyyyx","xyyzzyyx","xyyzyyyx","xyyyyyyx","xxxxxxxx","..x..x.."],
+ coin:["..xxxx..",".xyyyyx.","xyzyyyyx","xyzyyyyx","xyyyyyyx","xyyyyyyx",".xyyyyx.","..xxxx.."],
+ flyer:[".xxxxxx.",".xyyzyx.",".xyyzyx.",".xyyzyx.",".xyyyyx.",".xyyzyx.",".xyyyyx.",".xxxxxx."],
+ heart:["........",".xx..xx.","xxxxxxxx","xxxxxxxx",".xxxxxx.","..xxxx..","...xx...","........"],
+ cross:["........","...xx...","...xx...",".xxxxxx.",".xxxxxx.","...xx...","...xx...","........"],
+ pad:["........","........",".xxxxxx.","xyxxxxzx","yyyxxxxx","xyxxxzxx",".xxxxxx.","........"],
+ train:["..xxxx..",".xyyyyx.",".xyyyyx.",".xxxxxx.",".xzxxzx.",".xxxxxx.","..x..x..",".x....x."],
+ gift:["..z..z..","...zz...","xxxzzxxx","xxxzzxxx",".xxzzxx.",".xxzzxx.",".xxzzxx.",".xxzzxx."]};
+const ICOL={gym:['#33364d','#9aa0b5','#e8664f'],tea:['#5a3d2b','#c89a6a','#2b1d14'],book:['#2f6b44','#fbf7ea'],bag:['#e8664f','#5a3d2b','#fbf7ea'],
+ phone:['#232136','#8fcbe3','#fbf7ea'],cake:['#e88fb4','#fbf7ea','#f0b43a'],live:['#232136','#f29ac0','#fbf7ea'],coin:['#b8861f','#f0b43a','#fff6c8'],
+ flyer:['#232136','#fbf7ea','#e8664f'],heart:['#e8456a'],cross:['#e8664f'],pad:['#33364d','#f0b43a','#4fd68a'],train:['#2f6b8a','#bfe6f2','#f0b43a'],gift:['#d64545','','#f0b43a']};
+
+const cv=document.getElementById('cv'),cx=cv.getContext('2d');cx.imageSmoothingEnabled=false;
+function px(c,x,y,w,h){cx.fillStyle=c;cx.fillRect(Math.round(x),Math.round(y),w,h)}
+function drawMap(ctx,map,col,x,y,s){for(let r=0;r<map.length;r++)for(let c=0;c<map[r].length;c++){const k=map[r][c];if(k==='.')continue;const cl=col[k];if(!cl)continue;ctx.fillStyle=cl;ctx.fillRect(Math.round(x+c*s),Math.round(y+r*s),s,s)}}
+function hash(i){let x=Math.sin(i*127.1+311.7)*43758.5453;return x-Math.floor(x)}
+
+/* ---------- 状态 ---------- */
+let S,last=0,raf=0,pause=true,evCache={};
+const P={name:'小林',gender:'girl'};
+function reset(){
+  S={money:START,mood:60,wx:0,day:1,mode:'welcome',debt:0,picks:[],cat:{food:0,need:0,growth:0,people:0,charity:0,want:0,impulse:0},
+     ev:0,skip:0,impN:0,noPeople:0,income:0,minMoney:START,face:'happy'};
+  evCache={};
+  buildEvents();buildTrack();
+  hud();welcomePanel();
+}
+function walkFace(){return S.mood<25?'sad':S.money<0?'shock':'neutral'}
+function chargeFood(){S.money-=DAILY;S.cat.food+=DAILY;S.minMoney=Math.min(S.minMoney,S.money);floatText('-¥'+DAILY+' 三餐','minus')}
+
+/* ---------- HUD ---------- */
+const $=id=>document.getElementById(id);
+const track=$('track');
+function buildTrack(){track.querySelectorAll('span').forEach(n=>n.remove());EVENTS.filter(e=>!e.cond).forEach(e=>{const s=document.createElement('span');s.style.left=((e.day-0.5)/DAYS*100)+'%';s.dataset.d=e.day;track.appendChild(s)})}
+function money(n){return (n<0?'-¥':'¥')+Math.abs(n)}
+function hud(){
+  $('hDate').textContent='11月'+S.day+'日';
+  const m=$('hMoney');m.textContent=money(S.money);m.classList.toggle('low',S.money<200);
+  $('hMood').style.width=Math.max(0,Math.min(100,S.mood))+'%';
+  $('hProg').style.width=Math.min(100,S.wx/(DAYS*DAYLEN)*100)+'%';
+  track.querySelectorAll('span').forEach(s=>s.classList.toggle('done',+s.dataset.d<S.day||(+s.dataset.d===S.day&&S.mode!=='walk')));
+}
+function floatText(t,cls){const f=document.createElement('div');f.className='float '+(cls||'');f.textContent=t;$('floats').appendChild(f);setTimeout(()=>f.remove(),1400)}
+
+/* ---------- 面板 ---------- */
+const panel=$('panel');
+const WALKTIPS=['食堂一荤两素，12 块钱吃得饱饱的。','路过图书馆，里面坐满了自习的同学。','宿舍楼下的猫又胖了一圈。','记账小技巧：每天睡前花一分钟记下今天花了什么。','秋天的银杏叶黄了，捡一片夹进书里。','今天的课有点难，晚上要复习一下。','打开余额看了一眼，心里大概有个数。'];
+function walkPanel(){
+  const tip=WALKTIPS[S.day%WALKTIPS.length];
+  panel.innerHTML=`<div class="walklog"><div class="meta"><span>11月${S.day}日 · 第 ${S.day}/${DAYS} 天</span><span>三餐 -¥${DAILY}</span></div>
+  <div class="now">${esc(P.name)}正在校园里走着……</div><div class="tip">${tip}</div></div>`;
+}
+function welcomePanel(){
+  panel.innerHTML=`<div class="meta"><span>11月1日 · 学校正门</span><span>生活费 ¥${START}</span></div>
+  <h2>欢迎来到广东金融学院！</h2>
+  <p>${esc(P.name)}同学，新的一个月开始啦。这个月的生活费是 <b>2000 元</b>，食堂三餐每天 <b>32 元</b>会自动扣除。接下来的每一个选择，都会悄悄决定你月底的结局。</p>
+  <button class="go" type="button" id="btnDepart">出发，开始这个月 →</button>`;
+  const b=$('btnDepart');b.focus({preventScroll:true});
+  b.addEventListener('click',()=>{sfx('click');S.mode='walk';S.face='neutral';chargeFood();walkPanel();hud();$('gateSign').classList.add('fade')});
+}
+function eventPanel(e){
+  const text=e.textFn?e.textFn(S):e.text;
+  panel.innerHTML=`<div class="meta"><span>11月${e.day}日 · ${e.place}</span><span>余额 ${money(S.money)}</span></div>
+  <h2>${e.title}</h2><p>${text}</p><div class="opts">${e.opts.map((o,i)=>{
+    const c=o.cost, cls=c>0?'out':c<0?'in':'zero', amt=c>0?'-¥'+c:c<0?'+¥'+(-c):'¥0';
+    const warn=c>0&&c>S.money?'<small>余额不够，要用花呗先垫上</small>':'';
+    return `<button class="opt" type="button" data-i="${i}"><span>${o.t}${warn}</span><span class="amt ${cls}">${amt}</span></button>`}).join('')}</div>`;
+  panel.querySelectorAll('.opt').forEach(b=>b.addEventListener('click',()=>choose(e,e.opts[+b.dataset.i])));
+  panel.scrollTop=0;
+  const first=panel.querySelector('.opt');if(first)first.focus({preventScroll:true});
+}
+function choose(e,o){
+  const before=S.money;
+  S.money-=o.cost;S.mood=Math.max(0,Math.min(100,S.mood+o.mood));
+  if(o.debt)S.debt+=o.debt;
+  if(o.tag==='work')S.income+=-o.cost; // 借贷到账不算收入
+  const catMap={need:'need',growth:'growth',people:'people',charity:'charity',want:'want',impulse:'impulse',install:'impulse'};
+  if(o.cost>0&&catMap[o.tag])S.cat[catMap[o.tag]]+=o.cost;
+  if(o.tag==='impulse'||o.tag==='install')S.impN++;
+  if(o.tag==='skip')S.skip++;
+  if(o.noPeople)S.noPeople++;
+  S.minMoney=Math.min(S.minMoney,S.money);
+  S.picks.push({day:e.day,title:e.title,t:o.t,cost:o.cost,tag:o.tag});
+  if(o.cost>0)floatText('-¥'+o.cost,'minus');else if(o.cost<0)floatText('+¥'+(-o.cost),'plus');
+  hud();
+  const chips=[`余额 ${money(before)} → ${money(S.money)}`,`心情 ${o.mood>=0?'+':''}${o.mood}`];
+  if(o.debt)chips.push(`欠款 +¥${o.debt}`);
+  if(S.money<0&&before>=0)chips.push('开始透支花呗');
+  const tg=TAGS[o.tag];
+  S.face=faceFor(o);S.mode='result';
+  panel.innerHTML=`<div class="meta"><span>11月${e.day}日 · ${e.place}</span><span class="tag" style="background:${tg[1]}">${tg[0]}</span></div>
+   <div class="res"><canvas class="face" id="faceCv" width="22" height="18" aria-label="${esc(P.name)}的表情：${FACE_NAME[S.face]}"></canvas>
+   <div><div class="feel">${esc(P.name)} · ${FACE_NAME[S.face]}</div><h2>你选择了：${o.t}</h2></div></div>
+   <div class="chips">${chips.map(c=>`<span class="chip">${c}</span>`).join('')}</div>
+   <div class="fb">${o.fb}</div><button class="go" type="button" id="btnGo">${e.day>=DAYS?'看看这个月的结局 →':'继续往前走 →'}</button>`;
+  drawPortrait($('faceCv'),P.gender,S.face);
+  if(o.cost>0)sfx('spend');else if(o.cost<0)sfx('earn');
+  const fc=S.face;setTimeout(()=>sfx(fc),o.cost?230:0);
+  const go=$('btnGo');go.focus({preventScroll:true});
+  go.addEventListener('click',()=>{sfx('click');S.ev++;S.mode='walk';S.face=walkFace();S.wx+=1;walkPanel();hud()});
+}
+
+/* ---------- 场景绘制 ---------- */
+function drawScene(){
+  // 天空：随月份推进从晴蓝渐变到初冬的灰蓝
+  const k=Math.min(1,S.wx/(DAYS*DAYLEN));
+  const sky=mix([143,203,227],[160,178,206],k);
+  px(`rgb(${sky})`,0,0,W,H);
+  px(`rgba(255,255,255,.18)`,0,52,W,10);
+  // 云
+  for(let i=-1;i<6;i++){const off=S.wx*0.12;const base=i*90-(off%90);const cy=10+hash(i+Math.floor(off/90))*20;
+    px('#fdfdfd',base+10,cy,26,6);px('#fdfdfd',base+16,cy-4,14,4);px('#e6f1f6',base+10,cy+6,26,2)}
+  // 远景楼群
+  const seg=22,off2=S.wx*0.3,st=Math.floor(off2/seg);
+  for(let i=st-1;i<st+14;i++){const x=i*seg-off2;const h=26+Math.floor(hash(i)*36);const y=GROUND-6-h;
+    px('#6a7fae',x,y,seg-2,h+6);
+    for(let wy=y+4;wy<GROUND-12;wy+=7)for(let wxp=x+3;wxp<x+seg-5;wxp+=6)px(hash(i*7+wy+wxp)>.55?'#f6e7a1':'#8597c2',wxp,wy,3,3)}
+  // 中景树
+  const off3=S.wx*0.6,tseg=46,tst=Math.floor(off3/tseg);
+  for(let i=tst-1;i<tst+8;i++){if(hash(i+50)<.35)continue;const x=i*tseg-off3+hash(i+9)*20;const yel=hash(i+3)>.5;
+    const c1=yel?'#e2b23c':'#4f9a5c',c2=yel?'#c98f22':'#3b7d48';
+    px('#6b4a33',x+9,GROUND-18,4,14);px(c1,x+2,GROUND-34,18,14);px(c1,x+5,GROUND-38,12,4);px(c2,x+2,GROUND-22,18,4)}
+  // 地面
+  px('#6cae5f',0,GROUND-4,W,4);px('#4f8f4a',0,GROUND,W,2);
+  px('#c9a27a',0,GROUND+2,W,H-GROUND-2);
+  const toff=S.wx%16;for(let x=-toff;x<W;x+=16){px('#b48b63',x,GROUND+2,1,H);}
+  px('#b48b63',0,GROUND+14,W,1);
+  // 路灯：每天一盏，带日期
+  const dst=Math.floor((S.wx-CHARX)/DAYLEN);
+  for(let d=dst;d<dst+6;d++){if(d<0||d>DAYS)continue;const x=d*DAYLEN-S.wx+CHARX-6;
+    px('#3a3f55',x,GROUND-40,2,40);px('#3a3f55',x-2,GROUND-42,6,3);px('#ffe58a',x-1,GROUND-39,4,2);
+    if(d<DAYS){cx.fillStyle='#3a3f55';cx.font='7px monospace';cx.fillText(String(d+1),x+4,GROUND-32)}}
+  // 校门（开局）
+  drawGate(150-S.wx);
+  // 事件建筑
+  for(const e of EVENTS){const sx=e.x-S.wx+CHARX+30;if(sx<-80||sx>W+10)continue;
+    if(e.cond){if(!(e.day in evCache))evCache[e.day]=e.cond(S);if(!evCache[e.day])continue}
+    drawShop(sx,e)}
+  // 小人
+  // 小人
+  const walking=S.mode==='walk';const frame=walking?Math.floor(S.wx/7)%4:0;
+  const bob=walking&&frame%2?1:0;
+  const ch=25*2,top=GROUND-ch+1+bob;
+  px('rgba(0,0,0,.18)',CHARX+6,GROUND,22,3);
+  drawChar(cx,P.gender,CHARX,top,frame,2,S.face,walking);
+  if(S.mode==='event'||S.mode==='bubble'){const bx=CHARX+26,by=top-14;px('#232136',bx-1,by-1,12,14);px('#fbf7ea',bx,by,10,12);px('#e8664f',bx+3,by+2,4,5);px('#e8664f',bx+3,by+9,4,2)}
+  // 校门招牌跟随位置
+  const sign=$('gateSign');if(sign&&S.wx<260){sign.style.left=((150-S.wx-66)/W*100)+'%'}
+}
+function drawGate(cxp){
+  if(cxp<-90||cxp>W+90)return;
+  const l=cxp-62,r=cxp+50;
+  // 立柱
+  px('#232136',l-1,GROUND-62,14,62);px('#e9e2d0',l,GROUND-61,12,61);px('#cfc5ad',l+9,GROUND-61,3,61);
+  px('#232136',r-1,GROUND-62,14,62);px('#e9e2d0',r,GROUND-61,12,61);px('#cfc5ad',r+9,GROUND-61,3,61);
+  // 横梁与牌匾
+  px('#232136',l-5,GROUND-80,r-l+22,20);px('#b8433a',l-4,GROUND-79,r-l+20,18);px('#d65a4c',l-4,GROUND-79,r-l+20,3);
+  px('#f0b43a',l-6,GROUND-83,r-l+24,3);
+  // 花坛
+  px('#4f8f4a',l-10,GROUND-6,10,6);px('#e88fb4',l-8,GROUND-8,2,2);px('#f0b43a',l-4,GROUND-8,2,2);
+  px('#4f8f4a',r+12,GROUND-6,10,6);px('#e88fb4',r+14,GROUND-8,2,2);px('#f0b43a',r+18,GROUND-8,2,2);
+}
+function drawShop(x,e){
+  const w=64,h=58,y=GROUND-h;
+  px('#232136',x-1,y-1,w+2,h+1);
+  px(e.wall,x,y,w,h);
+  // 遮阳棚
+  for(let i=0;i<8;i++)px(i%2?'#fbf7ea':e.awn,x+i*8,y+16,8,8);
+  px('rgba(0,0,0,.2)',x,y+24,w,2);
+  // 招牌
+  px('#fbf7ea',x+20,y-6,24,22);px('#232136',x+20,y-6,24,1);px('#232136',x+20,y+15,24,1);px('#232136',x+20,y-6,1,22);px('#232136',x+43,y-6,1,22);
+  const c=ICOL[e.icon];drawMap(cx,ICONS[e.icon],{x:c[0],y:c[1]||c[0],z:c[2]||c[0]},x+24,y-3,2);
+  // 门窗
+  px('#3a2f2a',x+38,y+32,16,26);px('#f0b43a',x+50,y+44,2,2);
+  px('#bfe6f2',x+8,y+32,22,14);px('#232136',x+18,y+32,2,14);px('rgba(255,255,255,.6)',x+10,y+34,4,2);
+}
+function mix(a,b,t){return a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(',')}
+
+/* ---------- 主循环 ---------- */
+function step(ts){
+  raf=requestAnimationFrame(step);
+  const dt=Math.min(.05,(ts-(last||ts))/1000);last=ts;
+  if(pause)return;
+  if(S.mode==='walk'){
+    S.wx+=SPEED*dt;
+    // 跨天扣伙食
+    const nd=Math.min(DAYS,1+Math.floor(S.wx/DAYLEN));
+    while(S.day<nd){S.day++;chargeFood();walkPanel();}
+    // 事件
+    const e=EVENTS[S.ev];
+    if(e&&S.wx>=e.x){
+      if(e.cond&&!(e.day in evCache?evCache[e.day]:e.cond(S))){S.ev++;}
+      else{S.wx=e.x;S.mode='bubble';hud();sfx('pop');setTimeout(()=>{S.mode='event';eventPanel(e)},450)}
+    }
+    if(!EVENTS[S.ev]&&S.wx>=DAYS*DAYLEN){S.wx=DAYS*DAYLEN;pause=true;showEnd()}
+    hud();
+  }
+  drawScene();
+}
+
+/* ---------- 结局 ---------- */
+const ENDINGS={
+ debt:{name:'被账单追着跑的人',verdict:'需要警惕',stars:1,face:'cry',color:'#c0392b',
+  body:'这个月你用分期、借贷或花呗，提前花掉了未来的钱。账面上似乎过得去，但下个月一开始，你就背上了还款的压力。',
+  think:'“免息分期”“凭学生证就能借”这些说法，把大额消费包装得轻松简单，本质是在刺激超前消费。大学生还没有稳定收入，一旦陷入借新还旧，就可能掉进校园贷的陷阱。',
+  tips:['每月先定预算，花钱不超过生活费','不碰来路不明的网贷和“校园贷”','遇到经济困难，向父母、辅导员和学校资助中心求助']},
+ moon:{name:'月光小达人',verdict:'需要调整',stars:2,face:'shock',color:'#e8664f',
+  body:'限时优惠、联名周边、直播秒杀、抽卡……你在好几次“上头”的瞬间掏了钱，到月底钱包基本见底。',
+  think:'很多消费并不是因为需要，而是被营销制造的焦虑和身边的攀比推着走。消费主义让人相信“买了就会更快乐”，可这种快乐来得快、去得也快。',
+  tips:['下单前问自己：这是“需要”还是“想要”','想买的东西先放购物车冷静 3 天','少看让人上头的直播和促销推送']},
+ stingy:{name:'省到委屈自己',verdict:'方向对了，但过了头',stars:3,face:'sad',color:'#d29a22',
+  body:'你省下了不少钱，可也省掉了一些本该花的：学习的投入、生病时的药、天冷时的外套，或者和朋友家人的往来。',
+  think:'勤俭节约是中华民族的传统美德，但节约不等于一分钱都不花。合理消费、该花则花，是对自己的健康和成长负责。',
+  tips:['学习、健康、基本生活的钱不要省','适度的人情往来能让生活更有温度','把省下的钱用在更有价值的地方']},
+ wise:{name:'有温度的生活家',verdict:'值得点赞',stars:5,face:'proud',color:'#3f9e63',
+  body:'该花的钱你没有省，学习和健康都照顾到了；不该花的钱你守住了，没有被促销和攀比带走；你还把一部分钱给了朋友、家人和需要帮助的人。',
+  think:'这就是理性消费：量入为出、分清需要和想要，不攀比、不超前。同时你的消费也有温度，懂得感恩父母、关心他人。',
+  tips:['坚持记账，让每一分钱都心中有数','把节省下来的钱用于学习和成长','把这份消费观分享给身边的同学']},
+ ok:{name:'正在摸索的消费者',verdict:'基本合格',stars:4,face:'happy',color:'#4f8fd6',
+  body:'这个月你没有欠债，大部分时候能分清轻重，但也有几次花得有点随意，或者在该投入的地方犹豫了。',
+  think:'理性消费不是一下子就能做到的，需要在一次次选择里慢慢练习。关键是记住：先保证必需，再投资成长，最后才是享受。',
+  tips:['给每类花销定一个上限','月底复盘一次：哪些钱花得最值','冲动时先停一停，等一晚再决定']}
+};
+const WARM=['室友过生日','为山区小学捐书','今天是妈妈的生日'];
+function pickEnding(){
+  const overdraft=S.money<0;
+  if(S.debt>0||overdraft)return 'debt';
+  if(S.impN>=3||(S.cat.impulse>=450&&S.money<400))return 'moon';
+  // 钱确实省下来了（余额≥300），但省掉了该花的
+  if(S.money>=300&&((S.skip>=1&&S.money>=450)||S.skip>=2||(S.noPeople>=2&&S.money>=600)))return 'stingy';
+  // 本局抽到了人情或公益事件，才要求“有温度”这一条
+  const warmSeen=S.picks.some(p=>WARM.includes(p.title));
+  if(S.skip===0&&S.impN<=1&&S.cat.impulse<=100&&S.cat.growth>0&&(!warmSeen||S.cat.charity>0||S.cat.people>0)&&S.money>=80)return 'wise';
+  return 'ok';
+}
+function showEnd(){
+  const key=pickEnding(),E=ENDINGS[key];
+  const spent=Object.values(S.cat).reduce((a,b)=>a+b,0);
+  const CATS=[['food','三餐伙食','var(--c-food)'],['need','生活必需','var(--c-need)'],['growth','学习成长','var(--c-growth)'],['people','人情往来','var(--c-people)'],['charity','公益','var(--c-charity)'],['want','娱乐享受','var(--c-want)'],['impulse','冲动/分期','var(--c-impulse)']];
+  const debtLines=[];
+  S.picks.forEach(p=>{if(p.tag==='install')debtLines.push('手机分期：还剩 11 期，共 ¥6039');if(p.tag==='loan')debtLines.push('校园贷：下月需还 ¥1950')});
+  if(S.money<0)debtLines.push('花呗透支：¥'+(-S.money));
+  const html=`
+  <div class="kicker">11月30日 · ${esc(P.name)}的这个月结束了</div>
+  <div class="endhead"><canvas id="endFace" width="22" height="18" aria-label="${esc(P.name)}的表情：${FACE_NAME[E.face]}"></canvas><div>
+   <span class="verdict" style="background:${E.color}">${E.verdict}</span>
+   <h1 class="endtitle">${E.name}</h1>
+   <div class="stars" aria-label="${E.stars} 星">${'★'.repeat(E.stars)}<span style="opacity:.25">${'★'.repeat(5-E.stars)}</span></div></div></div>
+  <div class="stats">
+   <div class="stat"><span>月底余额</span><b style="color:${S.money<0?'var(--coral)':'var(--coin)'}">${money(S.money)}</b></div>
+   <div class="stat"><span>本月总支出</span><b>¥${spent}</b></div>
+   <div class="stat"><span>心情</span><b>${S.mood}</b></div>
+  </div>
+  ${debtLines.length?`<div class="card px"><h3 class="debtline">下个月一开始要还</h3><ul>${debtLines.map(l=>`<li>${l}</li>`).join('')}</ul></div>`:''}
+  <div class="card px"><h3>你的结局</h3><p style="margin:0 0 8px">${E.body}</p><p style="margin:0">${E.think}</p>
+   <p class="quote">“历览前贤国与家，成由勤俭破由奢。”<br><small>—— 李商隐《咏史》</small></p></div>
+  <div class="card px"><h3>钱都花在了哪里</h3>
+   <div class="stack">${CATS.map(c=>S.cat[c[0]]?`<i style="width:${S.cat[c[0]]/spent*100}%;background:${c[2]}" title="${c[1]}"></i>`:'').join('')}</div>
+   <div class="legend">${CATS.map(c=>`<div><em style="background:${c[2]}"></em>${c[1]}<b>¥${S.cat[c[0]]}</b></div>`).join('')}
+   ${S.income?`<div><em style="background:var(--leaf)"></em>勤工收入<b>+¥${S.income}</b></div>`:''}</div></div>
+  <div class="card px"><h3>给你的三条建议</h3><ul>${E.tips.map(t=>`<li>${t}</li>`).join('')}</ul></div>
+  <div class="card px"><h3>这个月的每一次选择</h3><div class="review">${S.picks.map(p=>{const tg=TAGS[p.tag];
+    return `<div><span class="d">11/${p.day}</span><span>${p.title}<br><small style="color:var(--ink-soft)">${p.t}</small><span class="tag" style="background:${tg[1]}">${tg[0]}</span></span><span class="a">${p.cost>0?'-¥'+p.cost:p.cost<0?'+¥'+(-p.cost):'¥0'}</span></div>`}).join('')}</div></div>
+  <button class="go" id="btnAgain" type="button">再过一次这个月 ↻</button>`;
+  $('endSheet').innerHTML=html;
+  const end=$('end');end.hidden=false;end.scrollTop=0;
+  drawPortrait($('endFace'),P.gender,E.face);
+  setTimeout(()=>sfx('end_'+key),200);
+  $('btnAgain').addEventListener('click',()=>{end.hidden=true;$('start').hidden=false;$('start').scrollTop=0;reset();pause=true;drawScene()});
+}
+
+/* ---------- 声音：原创田园风芯片音乐 + 音效（Web Audio 实时合成，无外部文件） ---------- */
+const AU={ctx:null,bgm:null,sfx:null,music:true,fx:true,timer:0,next:0,step:0};
+try{const v=localStorage.getItem('2k-audio');if(v){const o=JSON.parse(v);AU.music=o.m!==false;AU.fx=o.f!==false}}catch(e){}
+function saveAudio(){try{localStorage.setItem('2k-audio',JSON.stringify({m:AU.music,f:AU.fx}))}catch(e){}}
+function audioInit(){
+  const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;
+  if(!AU.ctx){AU.ctx=new AC();const m=AU.ctx.createGain();m.gain.value=.7;m.connect(AU.ctx.destination);
+    AU.bgm=AU.ctx.createGain();AU.bgm.gain.value=0;AU.bgm.connect(m);AU.sfx=AU.ctx.createGain();AU.sfx.gain.value=.55;AU.sfx.connect(m)}
+  if(AU.ctx.state==='suspended')AU.ctx.resume();return true}
+const mf=n=>440*Math.pow(2,(n-69)/12);
+function note(t,n,dur,type,vol,dest,glide){const c=AU.ctx,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(mf(n),t);
+  if(glide)o.frequency.exponentialRampToValueAtTime(mf(glide),t+dur);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.012);g.gain.exponentialRampToValueAtTime(.0008,t+dur);
+  o.connect(g);g.connect(dest);o.start(t);o.stop(t+dur+.05)}
+// 8 小节，每小节 8 个八分音符；null 表示延续
+const MEL=[76,null,79,null,81,79,76,null, 72,null,74,76,null,null,74,null, 77,null,76,77,81,null,79,77, 79,null,null,null,74,null,76,74,
+           76,null,79,null,84,null,83,81, 79,null,76,null,71,null,74,null, 77,76,74,null,74,76,77,79, 76,null,72,null,72,null,null,null];
+const CH={C:[60,64,67],Am:[57,60,64],F:[53,57,60],G:[55,59,62],Em:[52,55,59]};
+const PROG=['C','Am','F','G','C','Em','F','C'];
+const STEP=60/100/2; // 100 BPM 的八分音符
+function chordAt(i){const bar=Math.floor(i/8)%8,half=i%8;if(bar===6&&half>=4)return CH.G;return CH[PROG[bar]]}
+function schedule(){
+  const c=AU.ctx;while(AU.next<c.currentTime+.25){const i=AU.step%64,t=AU.next;
+    const n=MEL[i];if(n){let len=1;while(len<6&&MEL[(i+len)%64]===null)len++;note(t,n,STEP*len*.92,'triangle',.22,AU.bgm)}
+    const ch=chordAt(i);note(t,ch[[0,1,2,1,0,1,2,1][i%8]]+12,STEP*.9,'sine',.07,AU.bgm);
+    if(i%4===0)note(t,ch[0]-12,STEP*3.6,'triangle',.16,AU.bgm);
+    if(i%2===1)note(t,96,.03,'square',.012,AU.bgm);
+    AU.step++;AU.next+=STEP}}
+function musicOn(){if(!audioInit())return;const c=AU.ctx;AU.bgm.gain.cancelScheduledValues(c.currentTime);AU.bgm.gain.setTargetAtTime(1,c.currentTime,.3);
+  if(!AU.timer){AU.next=c.currentTime+.08;AU.timer=setInterval(schedule,60)}}
+function musicOff(){if(!AU.ctx)return;AU.bgm.gain.setTargetAtTime(0,AU.ctx.currentTime,.08);clearInterval(AU.timer);AU.timer=0}
+function seq(notes,gap,type,vol,durMul){const t=AU.ctx.currentTime+.02;notes.forEach((n,i)=>{if(n)note(t+i*gap,n,gap*(durMul||1.6),type,vol,AU.sfx)})}
+const SFX={
+ click:()=>note(AU.ctx.currentTime,84,.05,'square',.06,AU.sfx),
+ pop:()=>note(AU.ctx.currentTime,76,.14,'triangle',.25,AU.sfx,88),
+ spend:()=>seq([83,76],.07,'square',.09,1.4),
+ earn:()=>seq([83,88],.08,'square',.1,2),
+ neutral:()=>seq([72,74],.1,'triangle',.22),
+ happy:()=>seq([72,76,79],.08,'triangle',.24),
+ joy:()=>seq([72,76,79,84,88],.06,'square',.09,2),
+ proud:()=>seq([84,null,91,96],.07,'sine',.25,2.4),
+ sad:()=>seq([69,65],.2,'triangle',.24,1.3),
+ cry:()=>{seq([67,66,64,62],.2,'sine',.22,1.4)},
+ shock:()=>{const t=AU.ctx.currentTime;[0,.16].forEach(d=>{note(t+d,57,.12,'square',.08,AU.sfx);note(t+d,58,.12,'square',.08,AU.sfx)})},
+ end_wise:()=>seq([72,76,79,84,null,79,84],.11,'square',.08,1.8),
+ end_ok:()=>seq([72,76,79,84],.12,'triangle',.24,2),
+ end_stingy:()=>seq([72,69,67,64],.16,'triangle',.22,1.6),
+ end_moon:()=>seq([79,76,72,67],.13,'square',.08,1.5),
+ end_debt:()=>seq([64,63,62,61,null,48],.17,'square',.08,1.6)};
+function sfx(name){if(!AU.fx||!SFX[name])return;if(!audioInit())return;try{SFX[name]()}catch(e){}}
+function renderToggles(){const m=$('tgMusic'),f=$('tgFx');m.setAttribute('aria-pressed',AU.music);m.textContent='音乐 '+(AU.music?'开':'关');
+  f.setAttribute('aria-pressed',AU.fx);f.textContent='音效 '+(AU.fx?'开':'关')}
+$('tgMusic').addEventListener('click',()=>{AU.music=!AU.music;saveAudio();renderToggles();AU.music?musicOn():musicOff()});
+$('tgFx').addEventListener('click',()=>{AU.fx=!AU.fx;saveAudio();renderToggles();sfx('click')});
+renderToggles();
+document.addEventListener('visibilitychange',()=>{if(!AU.ctx)return;if(document.hidden)AU.ctx.suspend();else if(AU.music||AU.fx){AU.ctx.resume();if(AU.music&&AU.timer)AU.next=Math.max(AU.next,AU.ctx.currentTime+.05)}});
+
+/* ---------- 启动 ---------- */
+function preview(id,g,face){const c=$(id).getContext('2d');c.imageSmoothingEnabled=false;c.clearRect(0,0,16,25);drawChar(c,g,0,0,0,1,face)}
+preview('pvGirl','girl','happy');preview('pvBoy','boy','neutral');
+function setGender(g){P.gender=g;$('pickGirl').setAttribute('aria-pressed',g==='girl');$('pickBoy').setAttribute('aria-pressed',g==='boy');
+  preview('pvGirl','girl',g==='girl'?'happy':'neutral');preview('pvBoy','boy',g==='boy'?'happy':'neutral')}
+$('pickGirl').addEventListener('click',()=>setGender('girl'));
+$('pickBoy').addEventListener('click',()=>setGender('boy'));
+$('btnStart').addEventListener('click',()=>{const n=$('nick').value.trim();P.name=n?n.slice(0,8):'小林';
+  $('start').hidden=true;$('gateSign').classList.remove('fade');reset();pause=false;last=0;audioInit();sfx('click');if(AU.music)musicOn()});
+reset();pause=true;drawScene();
+raf=requestAnimationFrame(step);
+document.addEventListener('visibilitychange',()=>{last=0});
+})();
+</script>
+
+</body></html>
